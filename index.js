@@ -297,40 +297,40 @@ app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
                 console.log("文件[" + fileName + "]下载完毕");
                 // let filePath = dirPath + '\\' + fileName; //window系统路径
                 let filePath = dirPath + '/' + fileName;    //linux系统路径
-                // response.attachment(fileName);
-                // response.download(filePath, fileName, function(err){
-                //     if(err){
-                //         //处理错误，可能只有部分内容被传输，所以检查一下res.headerSent
-                //     } else{
-                //         //下载成功后删除服务器上的文件
-                //         fs.unlink(filePath, function(err){
-                //             if(err) return console.log(err);
-                //             console.log('文件删除成功');
-                //         })
-                //     }
-                // });
+                response.attachment(fileName);
+                response.download(filePath, fileName, function(err){
+                    if(err){
+                        //处理错误，可能只有部分内容被传输，所以检查一下res.headerSent
+                    } else{
+                        //下载成功后删除服务器上的文件
+                        fs.unlink(filePath, function(err){
+                            if(err) return console.log(err);
+                            console.log('文件删除成功');
+                        })
+                    }
+                });
                 // console.log('attachment;filename='+fileName)
                 // 实现文件下载
-                console.log(filePath);
-                var stats = fs.statSync(filePath); 
-                if(stats.isFile()){
-                    response.set({
-                    'Content-Type': 'application/octet-stream',
-                    // 'Content-Disposition': 'attachment;filename='+fileName,
-                    'Content-disposition': 'attachment;filename='+urlencode(musicName)+'.mp3',
-                    // 'Content-Length': ''+stats.size
-                    });
-                    fs.createReadStream(filePath).pipe(response);
-                    // response.on('end',function(){
-                        //下载成功后删除服务器上的文件
-                    fs.unlink(filePath, function(err){
-                        if(err) return console.log(err);
-                        console.log('文件删除成功');
-                    })
-                    // });
-                } else {
-                    response.end(404);
-                } 
+                // console.log(filePath);
+                // var stats = fs.statSync(filePath); 
+                // if(stats.isFile()){
+                //     response.set({
+                //     'Content-Type': 'application/octet-stream',
+                //     // 'Content-Disposition': 'attachment;filename='+fileName,
+                //     'Content-disposition': 'attachment;filename='+urlencode(musicName)+'.mp3',
+                //     // 'Content-Length': ''+stats.size
+                //     });
+                //     fs.createReadStream(filePath).pipe(response);
+                //     // response.on('end',function(){
+                //         //下载成功后删除服务器上的文件
+                //     fs.unlink(filePath, function(err){
+                //         if(err) return console.log(err);
+                //         console.log('文件删除成功');
+                //     })
+                //     // });
+                // } else {
+                //     response.end(404);
+                // } 
             });
         });
     });
@@ -342,7 +342,7 @@ app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
 
 
 //配置服务端口
-var server = app.listen(41234, function(){
+var server = app.listen(8083, function(){
 
     var host = server.address().address;
 

@@ -234,64 +234,87 @@ app.post('/kugou/music', urlencodedParser, function(request, response){
     req.end();
 });
 
-// 酷狗接口-通过歌曲不同音质hash值获取歌曲不同音质的文件
-app.get('/kugou/music', urlencodedParser, function(request, response){
-    // 输出 JSON 格式
-    // console.log(request)
-    let reqData = [['nq', request.query.FileHash], ['sq', request.query.SQFileHash], ['hq', request.query.HQFileHash]];
-    let resData
-    let dataEnd = false
-    // console.log(getMusicUrl(reqData[0][1]))
-    // 创建存放url的临时文件
-    var dirPath = path.join(__dirname, "downTemp");
-    fs.writeFile(dirPath + "/url.txt", "", function(err) {
-        if(err) {
-            return console.log(err);
-        }
-    });
-    reqData.forEach(function(item, index){
-        if(item != '暂无信息'){
-            requestdown('http://www.kugou.com/yy/index.php?r=play/getdata&hash='+item[1], function(error, response, body){
-                if(!error && response.statusCode == 200){
-                    var $ = cheerio.load(body);
-                    var data =  JSON.parse($('body').text()).data.play_url
-                    fs.appendFile(dirPath + '/url.txt', item[0]+'&'+data+',', function(err){  
-                        if(err){  
-                            console.log(err);  
-                        }  
-                    });
-                } else{
-                    console.log('请求失败：'+index);
-                }
-            })
-            if(index == 2){
-                dataEnd = true
-            }
+// 酷狗接口-通过歌曲不同音质的hash值获取不同音质歌曲的url
+app.get('/kugou/music', urlencodedParser, function(req, res){
+    let reqData = req.query.fileHash
+    requestdown('http://www.kugou.com/yy/index.php?r=play/getdata&hash='+reqData, function(error, response, body){
+        if(!error && response.statusCode == 200){
+            var $ = cheerio.load(body);
+            var data =  JSON.parse($('body').text()).data.play_url
+            res.send(data)
         } else{
-            fs.appendFile(dirPath + '/url.txt', item[0]+'&,' ,function(err){  
-                if(err){  
-                    console.log(err);  
-                }  
-            });  
-            if(index == 2){
-                dataEnd = true
-            }
+            console.log('请求失败：'+index);
         }
     })
-    let watchEnd = setInterval(function(){
-        if(dataEnd){
-            fs.readFile(dirPath + "/url.txt", 'utf-8', function(err, data){  
-                if(err){  
-                    console.error(err)  
-                }  
-                else{  
-                    response.send(data)
-                    clearInterval(watchEnd)
-                }  
-            });
-        }
-    }, 500)
-});
+})
+// app.get('/kugou/music', urlencodedParser, function(request, response){
+//     // 输出 JSON 格式
+//     // console.log(request)
+//     let reqData = [['nq', request.query.FileHash], ['sq', request.query.SQFileHash], ['hq', request.query.HQFileHash]];
+//     let resData
+//     let dataEnd = false
+//     // console.log(getMusicUrl(reqData[0][1]))
+//     // 创建存放url的临时文件
+//     var dirPath = path.join(__dirname, "downTemp");
+    
+//     fs.writeFile(dirPath + "/url.txt", "", function(err) {
+//         if(err) {
+//             return console.log(err);
+//         }
+//     });
+
+//     reqData.forEach(function(item, index){
+//         if(item != '暂无信息'){
+//             requestdown('http://www.kugou.com/yy/index.php?r=play/getdata&hash='+item[1], function(error, response, body){
+//                 if(!error && response.statusCode == 200){
+//                     var $ = cheerio.load(body);
+//                     var data =  JSON.parse($('body').text()).data.play_url
+//                     fs.appendFile(dirPath + '/url.txt', item[0]+'&'+data+',', function(err){  
+//                         if(err){  
+//                             console.log(err);  
+//                         }  
+//                     });
+//                 } else{
+//                     console.log('请求失败：'+index);
+//                 }
+//             })
+//             if(index == 2){
+//                 dataEnd = true
+//             }
+//         } else{
+//             fs.appendFile(dirPath + '/url.txt', item[0]+'&,' ,function(err){  
+//                 if(err){  
+//                     console.log(err);  
+//                 }  
+//             });  
+//             if(index == 2){
+//                 dataEnd = true
+//             }
+//         }
+//     })
+//     let watchEnd = setInterval(function(){
+//         if(dataEnd){
+//             fs.readFile(dirPath + "/url.txt", 'utf-8', function(err, data){  
+//                 if(err){  
+//                     console.error(err)  
+//                 }  
+//                 else{  
+//                     response.send(data)
+//                     clearInterval(watchEnd)
+//                     fs.exists(dirPath+"/url.txt", function(exists) {  
+//                         if(exists){
+//                             fs.unlink(dirPath+'/url.txt', function(){
+//                                 console.log('删除成功')
+//                             });
+//                         } else{
+//                             console.log('文件不存在')
+//                         }
+//                     });
+//                 }  
+//             });
+//         }
+//     }, 500)
+// });
 // 酷狗接口-发送歌曲文件
 app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
     // 输出 JSON 格式

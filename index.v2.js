@@ -247,178 +247,44 @@ app.get('/kugou/music', urlencodedParser, function(req, res){
         }
     })
 })
-// app.get('/kugou/music', urlencodedParser, function(request, response){
-//     // 输出 JSON 格式
-//     // console.log(request)
-//     let reqData = [['nq', request.query.FileHash], ['sq', request.query.SQFileHash], ['hq', request.query.HQFileHash]];
-//     let resData
-//     let dataEnd = false
-//     // console.log(getMusicUrl(reqData[0][1]))
-//     // 创建存放url的临时文件
-//     var dirPath = path.join(__dirname, "downTemp");
-    
-//     fs.writeFile(dirPath + "/url.txt", "", function(err) {
-//         if(err) {
-//             return console.log(err);
-//         }
-//     });
 
-//     reqData.forEach(function(item, index){
-//         if(item != '暂无信息'){
-//             requestdown('http://www.kugou.com/yy/index.php?r=play/getdata&hash='+item[1], function(error, response, body){
-//                 if(!error && response.statusCode == 200){
-//                     var $ = cheerio.load(body);
-//                     var data =  JSON.parse($('body').text()).data.play_url
-//                     fs.appendFile(dirPath + '/url.txt', item[0]+'&'+data+',', function(err){  
-//                         if(err){  
-//                             console.log(err);  
-//                         }  
-//                     });
-//                 } else{
-//                     console.log('请求失败：'+index);
-//                 }
-//             })
-//             if(index == 2){
-//                 dataEnd = true
-//             }
-//         } else{
-//             fs.appendFile(dirPath + '/url.txt', item[0]+'&,' ,function(err){  
-//                 if(err){  
-//                     console.log(err);  
-//                 }  
-//             });  
-//             if(index == 2){
-//                 dataEnd = true
-//             }
-//         }
-//     })
-//     let watchEnd = setInterval(function(){
-//         if(dataEnd){
-//             fs.readFile(dirPath + "/url.txt", 'utf-8', function(err, data){  
-//                 if(err){  
-//                     console.error(err)  
-//                 }  
-//                 else{  
-//                     response.send(data)
-//                     clearInterval(watchEnd)
-//                     fs.exists(dirPath+"/url.txt", function(exists) {  
-//                         if(exists){
-//                             fs.unlink(dirPath+'/url.txt', function(){
-//                                 console.log('删除成功')
-//                             });
-//                         } else{
-//                             console.log('文件不存在')
-//                         }
-//                     });
-//                 }  
-//             });
-//         }
-//     }, 500)
-// });
-// 酷狗接口-发送歌曲文件
+// 酷狗接口-通过歌曲url发送歌曲文件
 app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
     // 输出 JSON 格式
     let reqData = {
         'musicUrl': request.query.musicUrl
     };
-    let data = {
-        'r': 'play/getdata',
-        'hash': reqData.fileHash
-    };
-    //抓取页面
-    var content = querystring.stringify(data);
-
-    var resData = ''
-    var options = {
-        hostname: 'www.kugou.com',
-        port: 80,
-        path: '/yy/index.php?' + content,
-        method: 'GET',
-        headers: {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9',
-            'Connection': 'keep-alive',
-            'Cookie': 'kg_mid=86b852c82e6d0db34caaa7878649a7e7; Hm_lvt_aedee6983d4cfc62f509129360d6bb3d=1525242675,1525404250,1526518873,1526518882',
-            'Host': 'www.kugou.com',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'
-        }
-    };
-    var req = http.get(options, function(res){
-        var html = '', output;
-        if(res.headers['content-encoding'] == 'gzip'){
-            var gzip = zlib.createGunzip();
-            res.pipe(gzip);
-            output = gzip;
-        } else{
-            output = res;
-        }
-        output.on('data', (data) =>{
-            data = data.toString('utf-8');
-            html += data;
-        });
-        output.on('end', () =>{
-            resData = html;
-            var musicUrl = JSON.parse(resData).data.play_url;
-            var musicName = JSON.parse(resData).data.song_name;
-            // 创建文件夹目录
-            var dirPath = path.join(__dirname, "downTemp");
-            if(!fs.existsSync(dirPath)){
-                fs.mkdirSync(dirPath);
-                console.log("文件夹创建成功");
+    var musicUrl = reqData.musicUrl;
+    var musicEnd = reqData.musicUrl.split('.')[4];
+    // 创建文件夹目录
+    var dirPath = path.join(__dirname, "downTemp");
+    if(!fs.existsSync(dirPath)){
+        fs.mkdirSync(dirPath);
+        console.log("文件夹创建成功");
+    } else{
+        // console.log("文件夹已存在");
+    }
+    // 下载
+    let fileName = 'music.' + musicEnd;
+    let url = musicUrl;
+    let stream = fs.createWriteStream(path.join(dirPath, fileName));
+    requestdown(url).pipe(stream).on("close", function(err){
+        console.log("文件[" + fileName + "]下载完毕");
+        // let filePath = dirPath + '\\' + fileName; //window系统路径
+        let filePath = dirPath + '/' + fileName;    //linux系统路径
+        response.attachment(fileName);
+        response.download(filePath, fileName, function(err){
+            if(err){
+                //处理错误，可能只有部分内容被传输，所以检查一下res.headerSent
             } else{
-                console.log("文件夹已存在");
+                //下载成功后删除服务器上的文件
+                fs.unlink(filePath, function(err){
+                    if(err) return console.log(err);
+                    console.log('文件删除成功');
+                })
             }
-            // 下载
-            let fileName = musicName + ".mp3";
-            let url = musicUrl;
-            let stream = fs.createWriteStream(path.join(dirPath, fileName));
-            requestdown(url).pipe(stream).on("close", function(err){
-                console.log("文件[" + fileName + "]下载完毕");
-                // let filePath = dirPath + '\\' + fileName; //window系统路径
-                let filePath = dirPath + '/' + fileName;    //linux系统路径
-                response.attachment(fileName);
-                response.download(filePath, fileName, function(err){
-                    if(err){
-                        //处理错误，可能只有部分内容被传输，所以检查一下res.headerSent
-                    } else{
-                        //下载成功后删除服务器上的文件
-                        fs.unlink(filePath, function(err){
-                            if(err) return console.log(err);
-                            console.log('文件删除成功');
-                        })
-                    }
-                });
-                // console.log('attachment;filename='+fileName)
-                // 实现文件下载
-                // console.log(filePath);
-                // var stats = fs.statSync(filePath); 
-                // if(stats.isFile()){
-                //     response.set({
-                //     'Content-Type': 'application/octet-stream',
-                //     // 'Content-Disposition': 'attachment;filename='+fileName,
-                //     'Content-disposition': 'attachment;filename='+urlencode(musicName)+'.mp3',
-                //     // 'Content-Length': ''+stats.size
-                //     });
-                //     fs.createReadStream(filePath).pipe(response);
-                //     // response.on('end',function(){
-                //         //下载成功后删除服务器上的文件
-                //     fs.unlink(filePath, function(err){
-                //         if(err) return console.log(err);
-                //         console.log('文件删除成功');
-                //     })
-                //     // });
-                // } else {
-                //     response.end(404);
-                // } 
-            });
         });
     });
-    req.on('error', function(e){
-        console.log('problem with request: ' + e.message);
-    });
-    // req.end();
 });
 
 

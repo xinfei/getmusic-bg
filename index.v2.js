@@ -240,7 +240,7 @@ app.get('/kugou/music', urlencodedParser, function(req, res){
     requestdown('http://www.kugou.com/yy/index.php?r=play/getdata&hash='+reqData, function(error, response, body){
         if(!error && response.statusCode == 200){
             var $ = cheerio.load(body);
-            var data =  JSON.parse($('body').text()).data.play_url
+            var data = JSON.parse($('body').text()).data.play_url
             res.send(data)
         } else{
             console.log('请求失败：'+index);
@@ -252,7 +252,8 @@ app.get('/kugou/music', urlencodedParser, function(req, res){
 app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
     // 输出 JSON 格式
     let reqData = {
-        'musicUrl': request.query.musicUrl
+        'musicUrl': request.query.musicUrl,
+        'musicName': request.query.musicName
     };
     var musicUrl = reqData.musicUrl;
     var musicEnd = reqData.musicUrl.split('.')[4];
@@ -265,7 +266,7 @@ app.get('/kugou/sendmusic', urlencodedParser, function(request, response){
         // console.log("文件夹已存在");
     }
     // 下载
-    let fileName = 'music.' + musicEnd;
+    let fileName = reqData.musicName + '.' + musicEnd;
     let url = musicUrl;
     let stream = fs.createWriteStream(path.join(dirPath, fileName));
     requestdown(url).pipe(stream).on("close", function(err){
